@@ -1,0 +1,1 @@
+An application to proxy and re-stream an M3U playlist. If the same channel is selected on multiple devices, the stream will be copied locally avoiding the need to fetch it multiple times over the internet.
