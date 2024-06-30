@@ -1,1 +1,6 @@
-An application to proxy and re-stream an M3U playlist. If the same channel is selected on multiple devices, the stream will be copied locally avoiding the need to fetch it multiple times over the internet.
+# Restream
+## Usage : restream [M3U URL] [WhiteList (optional)]
+
+- A proxy server to restream an M3U playlist
+- Allows multiple connections to the same channel from a single remote stream source
+
