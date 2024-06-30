@@ -1,26 +1,31 @@
 ﻿using System.Net;
 using System.Text;
 
-if (args.Length == 0)
+const string m3uFileName = "playlist.m3u";
+const int maxConcurrentConnections = 2;
+string playListURL = "", currentUrl = "";
+
+if (args.Length > 0)
 {
-    Console.WriteLine("Specify an m3u playlist");
+    try { Uri uri = new(args[0]); playListURL = uri.ToString(); }
+    catch (Exception ex) { Console.WriteLine($"Playlist Uri format error : {ex.Message}"); }
+    if (args.Length == 2) Globals.whiteList = [.. args[1].ToString().Split(",")];
+}
+else
+{
+    Console.WriteLine("Usage : restream [M3U URL] [WhiteList (optional)]");
     return;
 }
-string playListURL = "";
-try { Uri uri = new(args[0]); playListURL = uri.ToString(); }
-catch (Exception ex) { Console.WriteLine($"Playlist Uri format error. {ex.Message}"); }
 
-Task? streamingTask = null;
-CancellationTokenSource cts = new();
-const string m3uFileName = "playlist.m3u";
 string playList = DownloadPlaylist(playListURL);
-string currentUrl = "";
 HttpListener listener = new();
 listener.Prefixes.Add($"http://*:{Globals.port}/");
 listener.Start();
 HashSet<Task> requests = [];
-for (int i = 0; i < 2; i++) requests.Add(listener.GetContextAsync());
+for (int i = 0; i < maxConcurrentConnections; i++) requests.Add(listener.GetContextAsync());
 Console.WriteLine($"Listening on {Globals.intUrl}...");
+Task? streamingTask = null;
+CancellationTokenSource cts = new();
 
 while (true)
 {
@@ -28,9 +33,9 @@ while (true)
     HttpListenerContext context = ((Task<HttpListenerContext>)t).Result;
 
     if (context.Request.Url == null) continue;
-    if (context.Request.Url.AbsolutePath == "/iptv")
+    if (context.Request.Url.AbsolutePath == "/")
     {
-        Console.WriteLine("Sending playlist");
+        string exMsg = "";
         context.Response.ContentType = "application/x-mpegurl";
         try
         {
@@ -39,9 +44,10 @@ while (true)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Sending playlist : {ex.Message}");
+            exMsg = ex.Message;
         }
         context.Response.Close();
+        Console.WriteLine($"Send playlist : {(exMsg == "" ? "" : exMsg)}");
     }
     else
     {
