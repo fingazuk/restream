@@ -17,7 +17,7 @@ else
     return;
 }
 
-string playList = DownloadPlaylist(playListURL);
+string playList = GetPlaylist(playListURL);
 HttpListener listener = new();
 listener.Prefixes.Add($"http://*:{Globals.port}/");
 listener.Start();
@@ -64,7 +64,7 @@ while (true)
                 cts = new();
             }
             Globals.destinations.Add(context);
-            streamingTask = fetchStream(videoUrl, cts.Token);
+            streamingTask = Restream(videoUrl, cts.Token);
             currentUrl = videoUrl;
         }
         else Globals.destinations.Add(context);
@@ -73,7 +73,7 @@ while (true)
     requests.Add(listener.GetContextAsync());
 }
 
-static async Task fetchStream(string videoUrl, CancellationToken token)
+static async Task Restream(string videoUrl, CancellationToken token)
 {
     string exMsg = "";
     Console.WriteLine($"Playing {videoUrl}");
@@ -99,11 +99,11 @@ static async Task fetchStream(string videoUrl, CancellationToken token)
     }
     catch (Exception ex) { exMsg = ex.Message; }
     Console.WriteLine($"{(exMsg != "" ? exMsg : "Stopped")} {videoUrl}");
-    foreach (var d in Globals.destinations) d.Response.Close();
+    Globals.destinations.ForEach(d => d.Response.Close()); ;
     Globals.destinations.Clear();
 }
 
-static string DownloadPlaylist(string playList)
+static string GetPlaylist(string playList)
 {
     string content = "";
     if (File.Exists(m3uFileName) && File.GetLastWriteTime(m3uFileName).Date == DateTime.Today.Date)
@@ -111,15 +111,22 @@ static string DownloadPlaylist(string playList)
     else
     {
         using HttpClient client = new();
-        HttpResponseMessage response = client.GetAsync(playList).Result;
-        if (response.StatusCode != HttpStatusCode.OK)
+        try
         {
-            Console.WriteLine("Unable to download remote playlist");
+            HttpResponseMessage response = client.GetAsync(playList).Result;
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                Console.WriteLine($"Unable to download playlist");
+                return "";
+            }
+            content = response.Content.ReadAsStringAsync().Result;
+            File.WriteAllText(m3uFileName, content);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Playlist error : {ex.Message}");
             return "";
         }
-        content = response.Content.ReadAsStringAsync().Result;
-        try { File.WriteAllText(m3uFileName, content); }
-        catch { }
     }
 
     int counter = 0;
