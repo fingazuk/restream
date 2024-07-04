@@ -1,9 +1,10 @@
 ﻿using System.Net;
 using System.Text;
 
-const string m3uFileName = "playlist.m3u";
-const int maxConcurrentConnections = 2;
-string playListURL = "", currentUrl = "";
+const string cacheFileName = "playlist.m3u";
+const int maxConnections = 2;
+const int bufferSize = 0x1000; //4KB
+string playListURL = "", currentURL = "";
 
 if (args.Length > 0)
 {
@@ -22,17 +23,17 @@ HttpListener listener = new();
 listener.Prefixes.Add($"http://*:{Globals.port}/");
 listener.Start();
 HashSet<Task> requests = [];
-for (int i = 0; i < maxConcurrentConnections; i++) requests.Add(listener.GetContextAsync());
+for (int i = 0; i < maxConnections; i++) requests.Add(listener.GetContextAsync());
 Console.WriteLine($"Listening on {Globals.intUrl}...");
-Task? streamingTask = null;
+Task? restreamTask = null;
 CancellationTokenSource cts = new();
 
 while (true)
 {
     Task t = await Task.WhenAny(requests);
     HttpListenerContext context = ((Task<HttpListenerContext>)t).Result;
-
     if (context.Request.Url == null) continue;
+
     if (context.Request.Url.AbsolutePath == "/")
     {
         string exMsg = "";
@@ -47,7 +48,7 @@ while (true)
             exMsg = ex.Message;
         }
         context.Response.Close();
-        Console.WriteLine($"Send playlist : {(exMsg == "" ? "" : exMsg)}");
+        Console.WriteLine($"Send playlist : {(exMsg == "" ? "OK" : exMsg)}");
     }
     else
     {
@@ -55,19 +56,15 @@ while (true)
         context.Response.ContentType = "video/MP2T"; // MPEG-TS content type
         context.Response.SendChunked = true;
 
-        if ((streamingTask != null && streamingTask.IsCompleted) || videoUrl != currentUrl)
+        if (restreamTask != null && !restreamTask.IsCompleted && videoUrl != currentURL)
         {
-            if (streamingTask != null && !streamingTask.IsCompleted)
-            {
-                cts.Cancel();
-                await streamingTask;
-                cts = new();
-            }
-            Globals.destinations.Add(context);
-            streamingTask = Restream(videoUrl, cts.Token);
-            currentUrl = videoUrl;
+            cts.Cancel();
+            await restreamTask;
+            cts = new();
         }
-        else Globals.destinations.Add(context);
+        Globals.destinations.Add(context);
+        currentURL = videoUrl;
+        if (restreamTask == null || restreamTask.IsCompleted) restreamTask = Restream(videoUrl, cts.Token);
     }
     requests.Remove(t);
     requests.Add(listener.GetContextAsync());
@@ -79,12 +76,11 @@ static async Task Restream(string videoUrl, CancellationToken token)
     Console.WriteLine($"Playing {videoUrl}");
     using HttpClient client = new();
     client.Timeout = TimeSpan.FromSeconds(30);
-    // Copy the video stream to the response output stream
+    // Copy the video stream to the response output streams
     try
     {
         using HttpResponseMessage videoResponse = client.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead).Result;
         using Stream videoStream = videoResponse.Content.ReadAsStream();
-        const int bufferSize = 0x1000; // Buffer size in bytes
         byte[] buffer = new byte[bufferSize];
         int bytesRead;
         while (Globals.destinations.Count > 0 && (bytesRead = await videoStream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
@@ -106,8 +102,8 @@ static async Task Restream(string videoUrl, CancellationToken token)
 static string GetPlaylist(string playList)
 {
     string content = "";
-    if (File.Exists(m3uFileName) && File.GetLastWriteTime(m3uFileName).Date == DateTime.Today.Date)
-        content = File.ReadAllText(m3uFileName);
+    if (File.Exists(cacheFileName) && File.GetLastWriteTime(cacheFileName).Date == DateTime.Today.Date)
+        content = File.ReadAllText(cacheFileName);
     else
     {
         using HttpClient client = new();
@@ -120,7 +116,7 @@ static string GetPlaylist(string playList)
                 return "";
             }
             content = response.Content.ReadAsStringAsync().Result;
-            File.WriteAllText(m3uFileName, content);
+            File.WriteAllText(cacheFileName, content);
         }
         catch (Exception ex)
         {
