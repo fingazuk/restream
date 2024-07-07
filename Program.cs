@@ -76,26 +76,46 @@ static async Task Restream(string videoUrl, CancellationToken token)
     Console.WriteLine($"Playing {videoUrl}");
     using HttpClient client = new();
     client.Timeout = TimeSpan.FromSeconds(30);
-    // Copy the video stream to the response output streams
+
     try
     {
-        using HttpResponseMessage videoResponse = client.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead).Result;
-        using Stream videoStream = videoResponse.Content.ReadAsStream();
-        byte[] buffer = new byte[bufferSize];
+        using HttpResponseMessage videoResponse = await client.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead, token);
+        using Stream videoStream = await videoResponse.Content.ReadAsStreamAsync();
+
+        byte[] buffer = new byte[bufferSize]; // Assuming bufferSize is defined somewhere
         int bytesRead;
-        while (Globals.destinations.Count > 0 && (bytesRead = await videoStream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+        List<Task> writeTasks = [];
+        while (Globals.destinations.Count > 0 && (bytesRead = await videoStream.ReadAsync(buffer, token)) > 0)
         {
-            for (int i = 0; i < Globals.destinations.Count; i++)
+            foreach (var destination in Globals.destinations)
             {
-                HttpListenerContext c = Globals.destinations[i];
-                try { await c.Response.OutputStream.WriteAsync(buffer, 0, bytesRead); }
-                catch (Exception ex) { exMsg = ex.Message; c.Response.Close(); Globals.destinations.Remove(c); }
+                writeTasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        await destination.Response.OutputStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    }
+                    catch (Exception ex)
+                    {
+                        //exMsg = ex.Message;
+                        destination.Response.Close();
+                        Globals.destinations.Remove(destination);
+                    }
+                }));
             }
+
+            await Task.WhenAll(writeTasks);
+            writeTasks.Clear();
         }
     }
-    catch (Exception ex) { exMsg = ex.Message; }
+    catch (Exception ex)
+    {
+        exMsg = ex.Message;
+    }
+
     Console.WriteLine($"{(exMsg != "" ? exMsg : "Stopped")} {videoUrl}");
-    Globals.destinations.ForEach(d => d.Response.Close()); ;
+
+    foreach (HttpListenerContext destination in Globals.destinations) destination.Response.Close();
     Globals.destinations.Clear();
 }
 
