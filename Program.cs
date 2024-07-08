@@ -72,32 +72,31 @@ while (true)
 
 static async Task Restream(string videoUrl, CancellationToken token)
 {
+    byte[] buffer = new byte[bufferSize];
+    int bytesRead;
+    List<Task> writeTasks = [];
     string exMsg = "";
-    Console.WriteLine($"Playing {videoUrl}");
     using HttpClient client = new();
     client.Timeout = TimeSpan.FromSeconds(30);
+    Console.WriteLine($"Playing {videoUrl}");
 
     try
     {
         using HttpResponseMessage videoResponse = await client.GetAsync(videoUrl, HttpCompletionOption.ResponseHeadersRead, token);
         using Stream videoStream = await videoResponse.Content.ReadAsStreamAsync();
-
-        byte[] buffer = new byte[bufferSize]; // Assuming bufferSize is defined somewhere
-        int bytesRead;
-        List<Task> writeTasks = [];
         while (Globals.destinations.Count > 0 && (bytesRead = await videoStream.ReadAsync(buffer, token)) > 0)
         {
-            foreach (var destination in Globals.destinations)
+            foreach (HttpListenerContext destination in Globals.destinations)
             {
                 writeTasks.Add(Task.Run(async () =>
                 {
                     try
                     {
-                        await destination.Response.OutputStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                        await destination.Response.OutputStream.WriteAsync(buffer, 0, bytesRead);
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        //exMsg = ex.Message;
+                        Console.WriteLine($"{destination.Request.UserHostName} closed {videoUrl}");
                         destination.Response.Close();
                         Globals.destinations.Remove(destination);
                     }
