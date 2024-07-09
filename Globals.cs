@@ -3,10 +3,7 @@ using System.Net.Sockets;
 
 static class Globals
 {
-    public static int Port { get; set; }
-    public static int MaxConnections { get; set; }
-    public static string PlaylistURL { get; set; } = "";
-    public static List<string> WhiteList { get; set; } = new();
+    public static Settings settings = new();
     public static List<HttpListenerContext> destinations = [];
     public static string intUrl = "", extUrl = "";
     public static string GetLocalIPAddress()

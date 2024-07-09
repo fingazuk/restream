@@ -9,11 +9,11 @@ string currentURL = "";
 try
 {
     Settings? settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText("settings.json")) ?? throw new Exception();
-    Globals.Port = settings.Port;
-    Globals.MaxConnections = settings.MaxConnections;
-    Globals.PlaylistURL = settings.PlaylistURL;
-    Globals.WhiteList = settings.WhiteList;
-    Globals.intUrl =  $"{Globals.GetLocalIPAddress()}:{Globals.Port}";
+    Globals.settings.Port = settings.Port;
+    Globals.settings.MaxConnections = settings.MaxConnections;
+    Globals.settings.PlaylistURL = settings.PlaylistURL;
+    Globals.settings.WhiteList = settings.WhiteList;
+    Globals.intUrl = $"{Globals.GetLocalIPAddress()}:{Globals.settings.Port}";
 }
 catch
 {
@@ -21,9 +21,9 @@ catch
     return;
 }
 
-string playList = GetPlaylist(Globals.PlaylistURL);
+string playList = GetPlaylist(Globals.settings.PlaylistURL);
 HttpListener listener = new();
-listener.Prefixes.Add($"http://*:{Globals.Port}/");
+listener.Prefixes.Add($"http://*:{Globals.settings.Port}/");
 listener.Start();
 Console.WriteLine($"Listening on {Globals.intUrl}...");
 Task? restreamTask = null;
@@ -63,7 +63,7 @@ while (true)
             cts = new();
         }
 
-        if (Globals.destinations.Count < Globals.MaxConnections)
+        if (Globals.destinations.Count < Globals.settings.MaxConnections)
         {
             Globals.destinations.Add(context);
             currentURL = videoUrl;
@@ -154,7 +154,7 @@ static string GetPlaylist(string playList)
     string? line;
     while ((line = sr.ReadLine()) != null)
     {
-        if (!Globals.WhiteList.Exists(a => line.Contains(a)))
+        if (!Globals.settings.WhiteList.Exists(a => line.Contains(a)))
         {
             sr.ReadLine();
             continue;
