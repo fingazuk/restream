@@ -9,11 +9,7 @@ string currentURL = "";
 try
 {
     Settings? settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText("settings.json")) ?? throw new Exception();
-    Globals.settings.Port = settings.Port;
-    Globals.settings.MaxConnections = settings.MaxConnections;
-    Globals.settings.PlaylistURL = settings.PlaylistURL;
-    Globals.settings.WhiteList = settings.WhiteList;
-    Globals.intUrl = $"{Globals.GetLocalIPAddress()}:{Globals.settings.Port}";
+    Globals.settings = settings;
 }
 catch
 {

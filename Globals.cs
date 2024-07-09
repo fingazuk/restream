@@ -5,7 +5,9 @@ static class Globals
 {
     public static Settings settings = new();
     public static List<HttpListenerContext> destinations = [];
-    public static string intUrl = "", extUrl = "";
+    private static string ipAddr = GetLocalIPAddress();
+    public static string intUrl => $"{ipAddr}:{settings.Port}";
+    public static string extUrl = "";
     public static string GetLocalIPAddress()
     {
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
