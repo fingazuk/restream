@@ -3,6 +3,5 @@
 /.vscode
 /publish
 publish.sh
-publish.sh
 playlist.m3u
 settings.json
