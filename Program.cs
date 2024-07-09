@@ -20,7 +20,7 @@ string playList = GetPlaylist(Globals.settings.PlaylistURL);
 HttpListener listener = new();
 listener.Prefixes.Add($"http://*:{Globals.settings.Port}/");
 listener.Start();
-Console.WriteLine($"Listening on {Globals.intUrl}...");
+Console.WriteLine($"Listening on {Globals.IntUrl}...");
 Task? restreamTask = null;
 CancellationTokenSource cts = new();
 
@@ -47,7 +47,7 @@ while (true)
     }
     else
     {
-        string videoUrl = context.Request.Url.AbsoluteUri.Replace(Globals.intUrl, Globals.extUrl);
+        string videoUrl = context.Request.Url.AbsoluteUri.Replace(Globals.IntUrl, Globals.extUrl);
         context.Response.ContentType = "video/MP2T"; // MPEG-TS content type
         context.Response.SendChunked = true;
 
@@ -162,7 +162,7 @@ static string GetPlaylist(string playList)
             Uri uri = new(line);
             Globals.extUrl = $"{uri.Host}:{uri.Port}";
         }
-        sb.AppendLine(line.Replace(Globals.extUrl, Globals.intUrl));
+        sb.AppendLine(line.Replace(Globals.extUrl, Globals.IntUrl));
         counter++;
     }
 
