@@ -13,6 +13,7 @@ try
     Globals.MaxConnections = settings.MaxConnections;
     Globals.PlaylistURL = settings.PlaylistURL;
     Globals.WhiteList = settings.WhiteList;
+    Globals.intUrl =  $"{Globals.GetLocalIPAddress()}:{Globals.Port}";
 }
 catch
 {

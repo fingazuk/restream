@@ -8,8 +8,8 @@ static class Globals
     public static string PlaylistURL { get; set; } = "";
     public static List<string> WhiteList { get; set; } = new();
     public static List<HttpListenerContext> destinations = [];
-    public static string intUrl = $"{GetLocalIPAddress()}:{Port}", extUrl = "";
-    private static string GetLocalIPAddress()
+    public static string intUrl = "", extUrl = "";
+    public static string GetLocalIPAddress()
     {
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
         foreach (var ip in host.AddressList)
