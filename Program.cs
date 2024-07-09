@@ -96,7 +96,7 @@ static async Task Restream(string videoUrl, CancellationToken token)
                     }
                     catch
                     {
-                        Console.WriteLine($"{destination.Request.UserHostName} closed {videoUrl}");
+                        Console.WriteLine($"{destination.Request.RemoteEndPoint.Address} closed {videoUrl}");
                         destination.Response.Close();
                         Globals.destinations.Remove(destination);
                     }
