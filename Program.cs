@@ -8,8 +8,7 @@ string currentURL = "";
 
 try
 {
-    Settings? settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText("settings.json")) ?? throw new Exception();
-    Globals.settings = settings;
+    Globals.settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText("settings.json")) ?? throw new Exception();
 }
 catch
 {
