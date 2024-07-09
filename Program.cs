@@ -2,7 +2,7 @@
 using System.Text;
 
 const string cacheFileName = "playlist.m3u";
-const int maxConnections = 2;
+const int maxConnections = 4;
 const int bufferSize = 0x1000; //4KB
 string playListURL = "", currentURL = "";
 
@@ -22,16 +22,13 @@ string playList = GetPlaylist(playListURL);
 HttpListener listener = new();
 listener.Prefixes.Add($"http://*:{Globals.port}/");
 listener.Start();
-HashSet<Task> requests = [];
-for (int i = 0; i < maxConnections; i++) requests.Add(listener.GetContextAsync());
 Console.WriteLine($"Listening on {Globals.intUrl}...");
 Task? restreamTask = null;
 CancellationTokenSource cts = new();
 
 while (true)
 {
-    Task t = await Task.WhenAny(requests);
-    HttpListenerContext context = ((Task<HttpListenerContext>)t).Result;
+    HttpListenerContext context = listener.GetContext();
     if (context.Request.Url == null) continue;
 
     if (context.Request.Url.AbsolutePath == "/")
@@ -62,12 +59,15 @@ while (true)
             await restreamTask;
             cts = new();
         }
-        Globals.destinations.Add(context);
-        currentURL = videoUrl;
-        if (restreamTask == null || restreamTask.IsCompleted) restreamTask = Restream(videoUrl, cts.Token);
+        
+        if (Globals.destinations.Count < maxConnections)
+        {
+            Globals.destinations.Add(context);
+            currentURL = videoUrl;
+            if (restreamTask == null || restreamTask.IsCompleted) restreamTask = Restream(videoUrl, cts.Token);
+        }
+        else context.Response.Close();
     }
-    requests.Remove(t);
-    requests.Add(listener.GetContextAsync());
 }
 
 static async Task Restream(string videoUrl, CancellationToken token)
