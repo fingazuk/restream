@@ -1,26 +1,28 @@
 ﻿using System.Net;
 using System.Text;
+using System.Text.Json;
 
 const string cacheFileName = "playlist.m3u";
-const int maxConnections = 4;
 const int bufferSize = 0x1000; //4KB
-string playListURL = "", currentURL = "";
+string currentURL = "";
 
-if (args.Length > 0)
+try
 {
-    try { Uri uri = new(args[0]); playListURL = uri.ToString(); }
-    catch (Exception ex) { Console.WriteLine($"Playlist Uri format error : {ex.Message}"); }
-    if (args.Length == 2) Globals.whiteList = [.. args[1].ToString().Split(",")];
+    Settings? settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText("settings.json")) ?? throw new Exception();
+    Globals.Port = settings.Port;
+    Globals.MaxConnections = settings.MaxConnections;
+    Globals.PlaylistURL = settings.PlaylistURL;
+    Globals.WhiteList = settings.WhiteList;
 }
-else
+catch
 {
-    Console.WriteLine("Usage : restream [M3U URL] [WhiteList (optional)]");
+    Console.WriteLine("settings.json error");
     return;
 }
 
-string playList = GetPlaylist(playListURL);
+string playList = GetPlaylist(Globals.PlaylistURL);
 HttpListener listener = new();
-listener.Prefixes.Add($"http://*:{Globals.port}/");
+listener.Prefixes.Add($"http://*:{Globals.Port}/");
 listener.Start();
 Console.WriteLine($"Listening on {Globals.intUrl}...");
 Task? restreamTask = null;
@@ -59,8 +61,8 @@ while (true)
             await restreamTask;
             cts = new();
         }
-        
-        if (Globals.destinations.Count < maxConnections)
+
+        if (Globals.destinations.Count < Globals.MaxConnections)
         {
             Globals.destinations.Add(context);
             currentURL = videoUrl;
@@ -96,7 +98,7 @@ static async Task Restream(string videoUrl, CancellationToken token)
                     }
                     catch
                     {
-                        Console.WriteLine($"{destination.Request.RemoteEndPoint.Address} closed {videoUrl}");
+                        Console.WriteLine($"Stopped {destination.Request.RemoteEndPoint.Address}");
                         destination.Response.Close();
                         Globals.destinations.Remove(destination);
                     }
@@ -151,7 +153,7 @@ static string GetPlaylist(string playList)
     string? line;
     while ((line = sr.ReadLine()) != null)
     {
-        if (!Globals.whiteList.Exists(a => line.Contains(a)))
+        if (!Globals.WhiteList.Exists(a => line.Contains(a)))
         {
             sr.ReadLine();
             continue;

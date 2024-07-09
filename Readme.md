@@ -1,5 +1,6 @@
 # Restream
-## Usage : restream [M3U URL] [WHITELIST]
+## Usage : restream
+### Copy settings-example.json to settings.json and configure accordingly
 
 - Restreams IPTV using an M3U playlist through a proxy server
 - Allows multiple connections to the same channel from a single remote stream source

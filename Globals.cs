@@ -3,10 +3,12 @@ using System.Net.Sockets;
 
 static class Globals
 {
+    public static int Port { get; set; }
+    public static int MaxConnections { get; set; }
+    public static string PlaylistURL { get; set; } = "";
+    public static List<string> WhiteList { get; set; } = new();
     public static List<HttpListenerContext> destinations = [];
-    public const uint port = 3666;
-    public static string intUrl = $"{GetLocalIPAddress()}:{port}", extUrl = "";
-    public static List<string> whiteList = [];
+    public static string intUrl = $"{GetLocalIPAddress()}:{Port}", extUrl = "";
     private static string GetLocalIPAddress()
     {
         IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
@@ -16,5 +18,12 @@ static class Globals
         }
         return "localhost";
     }
+}
 
+public class Settings
+{
+    public int Port { get; set; }
+    public int MaxConnections { get; set; }
+    public string PlaylistURL { get; set; } = "";
+    public List<string> WhiteList { get; set; } = new();
 }

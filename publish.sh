@@ -1,1 +1,1 @@
-dotnet publish -r linux-arm --no-self-contained -o publish/
+dotnet publish -r linux-arm -o publish --no-self-contained 
