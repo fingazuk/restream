@@ -149,7 +149,7 @@ static string GetPlaylist(string playList)
     string? line;
     while ((line = sr.ReadLine()) != null)
     {
-        if (!Globals.settings.WhiteList.Exists(a => line.Contains(a)))
+        if (Globals.settings.WhiteList.Count > 0 && !Globals.settings.WhiteList.Exists(a => line.Contains(a)))
         {
             sr.ReadLine();
             continue;
