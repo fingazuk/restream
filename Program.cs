@@ -20,6 +20,7 @@ string playList = GetPlaylist(Globals.settings.PlaylistURL);
 HttpListener listener = new();
 listener.Prefixes.Add($"http://*:{Globals.settings.Port}/");
 listener.Start();
+Globals.IntUrl = $"{Globals.ipAddr}:{Globals.settings.Port}";
 Console.WriteLine($"Listening on {Globals.IntUrl}...");
 Task? restreamTask = null;
 CancellationTokenSource cts = new();

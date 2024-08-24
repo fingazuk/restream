@@ -5,8 +5,8 @@ static class Globals
 {
     public static Settings settings = new();
     public static List<HttpListenerContext> destinations = [];
-    private static readonly string ipAddr = GetLocalIPAddress();
-    public static string IntUrl => $"{ipAddr}:{settings.Port}";
+    public static readonly string ipAddr = GetLocalIPAddress();
+    public static string IntUrl = "";
     public static string extUrl = "";
     public static string GetLocalIPAddress()
     {
