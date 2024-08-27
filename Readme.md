@@ -1,7 +1,7 @@
 # Restream
 ## Usage : restream
 
-- Re-stream an M3U playlist through a self hosted proxy server
+- Re-stream an M3U playlist with a self hosted proxy server
 - Ideal for running on a home server permenantly connected to a VPN, freeing up local watching devices from needing a VPM connection if one is normally required
 - Allows multiple watch devices to access the same single channel in the playlist
 - Copy settings-example.json to settings.json in the build directory and set the playlist URL to your own URL
