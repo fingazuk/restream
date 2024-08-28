@@ -2,5 +2,5 @@
   "Port": 3666,
   "MaxConnections": 4,
   "PlaylistURL": "http://",
-  "WhiteList": [  ]
+  "WhiteList": [ ]
 }
