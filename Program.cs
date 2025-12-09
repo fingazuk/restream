@@ -55,7 +55,14 @@ while (true)
         if (restreamTask != null && !restreamTask.IsCompleted && videoUrl != currentURL)
         {
             cts.Cancel();
-            await restreamTask;
+            try
+            {
+                await restreamTask.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            catch (TimeoutException)
+            {
+                Console.WriteLine("Restream task did not complete in time and was skipped.");
+            }
             cts = new();
         }
 
@@ -63,7 +70,8 @@ while (true)
         {
             Globals.destinations.Add(context);
             currentURL = videoUrl;
-            if (restreamTask == null || restreamTask.IsCompleted) restreamTask = Restream(videoUrl, cts.Token);
+            if (restreamTask == null || restreamTask.IsCompleted || restreamTask.IsFaulted || restreamTask.IsCanceled)
+                restreamTask = Restream(videoUrl, cts.Token);
         }
         else context.Response.Close();
     }
@@ -73,7 +81,6 @@ static async Task Restream(string videoUrl, CancellationToken token)
 {
     byte[] buffer = new byte[bufferSize];
     int bytesRead;
-    List<Task> writeTasks = [];
     string exMsg = "";
     using HttpClient client = new();
     client.Timeout = TimeSpan.FromSeconds(30);
@@ -85,6 +92,7 @@ static async Task Restream(string videoUrl, CancellationToken token)
         using Stream videoStream = await videoResponse.Content.ReadAsStreamAsync();
         while (Globals.destinations.Count > 0 && (bytesRead = await videoStream.ReadAsync(buffer, token)) > 0)
         {
+            List<Task> writeTasks = [];
             foreach (HttpListenerContext destination in Globals.destinations)
             {
                 writeTasks.Add(Task.Run(async () =>
@@ -106,7 +114,6 @@ static async Task Restream(string videoUrl, CancellationToken token)
             }
 
             await Task.WhenAll(writeTasks);
-            writeTasks.Clear();
         }
     }
     catch (Exception ex)
@@ -116,7 +123,13 @@ static async Task Restream(string videoUrl, CancellationToken token)
 
     Console.WriteLine($"{(exMsg != "" ? exMsg : "Stopped")} {videoUrl}");
 
-    foreach (HttpListenerContext destination in Globals.destinations) destination.Response.Close();
+    foreach (HttpListenerContext destination in Globals.destinations)
+    {
+        if (destination.Response.OutputStream.CanWrite)
+        {
+            destination.Response.Close();
+        }
+    }
     Globals.destinations.Clear();
 }
 
